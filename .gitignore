@@ -1,3 +1,9 @@
-syntac/node_modules/
-*.pyc
-__pycache__/
+# Ignore everything by default
+/*
+
+# Except these files
+!/syntacback/app.py
+!/syntac/src/App.js
+!/syntac/src/App.css
+!/README.md
+!/.gitignore
