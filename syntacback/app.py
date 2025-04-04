@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import mysql.connector
 import json
 from flask_cors import CORS
+import random
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
@@ -32,8 +33,9 @@ def pre_generate_timetables():
     c.execute("SELECT * FROM teachers_info")
     teachers = {t['id']: t for t in c.fetchall()}
 
-    c.execute("SELECT * FROM timeslots ORDER BY start_time")
+    c.execute("""SELECT id, day, TIME_FORMAT(start_time, '%h:%i %p') AS start_time, TIME_FORMAT(end_time, '%h:%i %p') AS end_time FROM timeslots ORDER BY HOUR(start_time) >= 12, start_time""")
     time_slots = c.fetchall()
+    print("Time slots from DB:", time_slots)
 
     all_timetables = {}
 
@@ -41,11 +43,13 @@ def pre_generate_timetables():
         grade = cls['grade']
         class_id = cls['id']
         applicable_subjects = [s['name'] for s in subjects if str(grade) in s['grades'].split(',')]
+        random.shuffle(applicable_subjects)  # Shuffle subjects to randomize the timetable
 
         timetable = []
         for slot in time_slots:
             if not applicable_subjects:
-                break
+                timetable.append({"time": f"{slot['start_time']} - {slot['end_time']}", "teacher": "No Teacher", "subject": "Free"})
+                continue
             subject = applicable_subjects.pop(0)
             valid_teachers = [t_id for t_id, t in teachers.items() if subject in t['subjects'].split(',') and str(grade) in t['grades'].split(',')]
             teacher = valid_teachers[0] if valid_teachers else "No Teacher"
